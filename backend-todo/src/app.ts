@@ -47,8 +47,9 @@ connection.connect((err: Error) => {
     // task作成
     app.post("/api/tasks", (req: express.Request, res: express.Response) => {
         const new_task: string = req.body.task._value;
+        const deadline: string = req.body.deadline._value;
         // console.log(new_task);
-        const sql: string = `insert into tasks (task) values ('${new_task}')`;
+        const sql: string = `insert into tasks (task, deadline, status, delete_task) values ('${new_task}', '${deadline}', false, false)`;
         connection.query(sql, (err: Error, result: []) => {
             if (err) throw err;
             res.send(result);
@@ -56,7 +57,14 @@ connection.connect((err: Error) => {
         idReset();
     });
 
-    // task更新
+    // task status更新
+    app.put("/api/tasks/:id", (req, res) => {
+        const id: number = Number(req.params.id);
+        const sql: string = `update tasks set status=true where id='${id}'`;
+        connection.query(sql, (err: Error, result: []) => {
+            if (err) throw err;
+        })
+    })
 
     // task削除
     app.delete("/api/tasks/:id", (req, res) => {
@@ -66,6 +74,7 @@ connection.connect((err: Error) => {
             if (err) throw err;
             res.send(result);
         })
+        idReset();
     }); 
 });
 
