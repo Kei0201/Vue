@@ -2,6 +2,14 @@ import express from 'express'
 
 const app = express();
 const mysql = require('mysql');
+const cors = require("cors");
+
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST", "PUT", "DELETE"],
+    })
+);
 
 app.use(express.json());
 
@@ -11,29 +19,41 @@ const connection = mysql.createConnection({
     user: 'root',
     password: '',
     database: 'test_db',
+    multipleStatements: true,
 });
 
 connection.connect((err: Error) => {
     if (err) throw err;
     console.log('Connected');
 
+    // idを連番に修正
+    const idReset = () => {
+        const set_sql = "set @n:=0; ";
+        const update_sql = "update tasks set id=@n:=@n+1"; 
+        connection.query(set_sql + update_sql, (err: Error) => {
+            if (err) throw err;
+        });
+    }
+
     // tasks取得
     app.get("/api/tasks", (req, res) => {
         const sql: string = "select * from tasks";
-        connection.query(sql, (err: Error, result: any) => {
+        connection.query(sql, (err: Error, result: []) => {
             if (err) throw err;
             res.send(result);
         });
     });
 
     // task作成
-    app.post("/api/tasks", (req, res) => {
-        const new_task: string = req.body.task;
+    app.post("/api/tasks", (req: express.Request, res: express.Response) => {
+        const new_task: string = req.body.task._value;
+        // console.log(new_task);
         const sql: string = `insert into tasks (task) values ('${new_task}')`;
-        connection.query(sql, (err: Error, result: any) => {
+        connection.query(sql, (err: Error, result: []) => {
             if (err) throw err;
             res.send(result);
         });
+        idReset();
     });
 
     // task更新
@@ -42,7 +62,7 @@ connection.connect((err: Error) => {
     app.delete("/api/tasks/:id", (req, res) => {
         const id: number = Number(req.params.id);
         const sql: string = `delete from tasks where id='${id}'`;
-        connection.query(sql, (err: Error, result: any) => {
+        connection.query(sql, (err: Error, result: []) => {
             if (err) throw err;
             res.send(result);
         })
